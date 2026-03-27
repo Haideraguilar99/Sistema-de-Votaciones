@@ -1,0 +1,11 @@
+# requirements.txt
+# Dependencias del proyecto.
+# Versiones fijas para evitar sorpresas al deployar.
+
+fastapi==0.111.0          # El framework web principal
+uvicorn[standard]==0.29.0 # El servidor ASGI para correr FastAPI
+sqlalchemy==2.0.30        # ORM para interactuar con la BD
+psycopg2-binary==2.9.9    # Driver de PostgreSQL para Python
+pydantic[email]==2.7.1    # Validación de datos (incluye soporte de EmailStr)
+jinja2==3.1.4             # Motor de plantillas para servir el HTML
+python-multipart==0.0.9   # Necesario para que FastAPI procese formularios

@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Votaciones</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+
+    <style>
+        /* ============================================================
+           Variables CSS para el modo claro y oscuro.
+           Cuando cambiamos el atributo data-theme en <html>,
+           todos los colores se actualizan automáticamente. Muy limpio.
+        ============================================================ */
+        [data-theme="light"] {
+            --bg-primary: #f0f2f5;
+            --bg-card: #ffffff;
+            --text-primary: #212529;
+            --text-muted: #6c757d;
+            --border-color: #dee2e6;
+            --navbar-bg: #1a1a2e;
+            --accent: #4361ee;
+            --accent-hover: #3451d1;
+            --badge-bg: #e8eaff;
+            --badge-text: #4361ee;
+            --winner-bg: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        [data-theme="dark"] {
+            --bg-primary: #0d1117;
+            --bg-card: #161b22;
+            --text-primary: #e6edf3;
+            --text-muted: #8b949e;
+            --border-color: #30363d;
+            --navbar-bg: #010409;
+            --accent: #58a6ff;
+            --accent-hover: #79b8ff;
+            --badge-bg: #1f3a5c;
+            --badge-text: #58a6ff;
+            --winner-bg: linear-gradient(135deg, #1f3a5c 0%, #2d1b69 100%);
+        }
+
+        /* Aplicamos las variables a elementos base */
+        body {
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            transition: background-color 0.3s ease, color 0.3s ease;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+        }
+
+        .navbar {
+            background-color: var(--navbar-bg) !important;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+
+        .card {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            transition: background-color 0.3s ease, border-color 0.3s ease;
+        }
+
+        .card-header {
+            background-color: transparent;
+            border-bottom: 1px solid var(--border-color);
+            font-weight: 600;
+            padding: 1rem 1.25rem;
+        }
+
+        /* Botón del modo oscuro */
+        #theme-toggle {
+            background: rgba(255,255,255,0.15);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+            border-radius: 20px;
+            padding: 5px 14px;
+            cursor: pointer;
+            transition: background 0.2s;
+            font-size: 0.85rem;
+        }
+        #theme-toggle:hover { background: rgba(255,255,255,0.25); }
+
+        /* Tabs de navegación */
+        .nav-tabs .nav-link {
+            color: var(--text-muted);
+            border: none;
+            padding: 0.75rem 1.25rem;
+            font-weight: 500;
+            border-bottom: 3px solid transparent;
+        }
+        .nav-tabs .nav-link.active {
+            color: var(--accent);
+            background: transparent;
+            border-bottom: 3px solid var(--accent);
+        }
+        .nav-tabs { border-bottom: 1px solid var(--border-color); }
+
+        /* Inputs y formularios */
+        .form-control, .form-select {
+            background-color: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            border-radius: 8px;
+        }
+        .form-control:focus, .form-select:focus {
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            border-color: var(--accent);
+            box-shadow: 0 0 0 0.2rem rgba(67, 97, 238, 0.15);
+        }
+        .form-label { font-weight: 500; color: var(--text-primary); }
+
+        /* Botones principales */
+        .btn-accent {
+            background-color: var(--accent);
+            border-color: var(--accent);
+            color: white;
+            border-radius: 8px;
+            font-weight: 500;
+            padding: 0.5rem 1.25rem;
+        }
+        .btn-accent:hover {
+            background-color: var(--accent-hover);
+            border-color: var(--accent-hover);
+            color: white;
+        }
+
+        /* Tarjetas de candidatos en resultados */
+        .candidate-card {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 1rem 1.25rem;
+            margin-bottom: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            transition: transform 0.2s;
+        }
+        .candidate-card:hover { transform: translateX(4px); }
+
+        /* El candidato ganador tiene un estilo especial */
+        .candidate-card.winner {
+            background: var(--winner-bg);
+            color: white;
+            border: none;
+        }
+        .candidate-card.winner .text-muted { color: rgba(255,255,255,0.75) !important; }
+
+        .rank-badge {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background-color: var(--badge-bg);
+            color: var(--badge-text);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.9rem;
+            flex-shrink: 0;
+        }
+        .candidate-card.winner .rank-badge {
+            background: rgba(255,255,255,0.25);
+            color: white;
+        }
+
+        .vote-bar-container {
+            flex: 1;
+        }
+        .vote-bar {
+            height: 8px;
+            border-radius: 4px;
+            background-color: var(--border-color);
+            overflow: hidden;
+            margin-top: 6px;
+        }
+        .vote-bar-fill {
+            height: 100%;
+            background-color: var(--accent);
+            border-radius: 4px;
+            transition: width 0.8s ease;
+        }
+        .candidate-card.winner .vote-bar-fill {
+            background: rgba(255,255,255,0.85);
+        }
+        .candidate-card.winner .vote-bar {
+            background: rgba(255,255,255,0.2);
+        }
+
+        /* Alertas de respuesta */
+        .alert-response {
+            border-radius: 10px;
+            font-size: 0.9rem;
+            padding: 0.75rem 1rem;
+        }
+
+        /* Tabla de listados */
+        .table {
+            color: var(--text-primary);
+        }
+        .table > :not(caption) > * > * {
+            background-color: transparent;
+            border-bottom-color: var(--border-color);
+            color: var(--text-primary);
+        }
+
+        .section-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* Estadísticas en la parte superior */
+        .stat-card {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.25rem;
+            text-align: center;
+        }
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--accent);
+        }
+        .stat-label {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-top: 0.25rem;
+        }
+
+        /* Loading spinner */
+        .loading-overlay {
+            position: fixed; top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.3);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 9999; display: none;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Loading overlay -->
+    <div class="loading-overlay" id="loading">
+        <div class="spinner-border text-light" role="status">
+            <span class="visually-hidden">Cargando...</span>
+        </div>
+    </div>
+
+    <!-- NAVBAR -->
+    <nav class="navbar navbar-dark px-3 py-2">
+        <div class="container-fluid">
+            <span class="navbar-brand fw-bold fs-5">
+                <i class="bi bi-ballot me-2"></i>Sistema de Votaciones
+            </span>
+            <!-- Botón de modo oscuro/claro -->
+            <button id="theme-toggle" onclick="toggleTheme()">
+                <i class="bi bi-moon-fill me-1" id="theme-icon"></i>
+                <span id="theme-label">Modo Oscuro</span>
+            </button>
+        </div>
+    </nav>
+
+    <div class="container py-4">
+
+        <!-- ESTADÍSTICAS RÁPIDAS -->
+        <div class="row g-3 mb-4" id="stats-row">
+            <div class="col-4">
+                <div class="stat-card">
+                    <div class="stat-number" id="stat-voters">-</div>
+                    <div class="stat-label"><i class="bi bi-people me-1"></i>Votantes</div>
+                </div>
+            </div>
+            <div class="col-4">
+                <div class="stat-card">
+                    <div class="stat-number" id="stat-candidates">-</div>
+                    <div class="stat-label"><i class="bi bi-person-badge me-1"></i>Candidatos</div>
+                </div>
+            </div>
+            <div class="col-4">
+                <div class="stat-card">
+                    <div class="stat-number" id="stat-votes">-</div>
+                    <div class="stat-label"><i class="bi bi-check2-circle me-1"></i>Votos</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TABS DE NAVEGACIÓN -->
+        <ul class="nav nav-tabs mb-4" id="mainTabs">
+            <li class="nav-item">
+                <a class="nav-link active" href="#" onclick="showTab('results')">
+                    <i class="bi bi-bar-chart me-1"></i>Resultados
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#" onclick="showTab('vote')">
+                    <i class="bi bi-check-square me-1"></i>Votar
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#" onclick="showTab('register')">
+                    <i class="bi bi-person-plus me-1"></i>Registrar
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#" onclick="showTab('lists')">
+                    <i class="bi bi-list-ul me-1"></i>Ver Listas
+                </a>
+            </li>
+        </ul>
+
+        <!-- ========================
+             TAB: RESULTADOS
+        ======================== -->
+        <div id="tab-results">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span><i class="bi bi-trophy me-2 text-warning"></i>Resultados en Tiempo Real</span>
+                    <button class="btn btn-sm btn-accent" onclick="loadResults()">
+                        <i class="bi bi-arrow-clockwise me-1"></i>Actualizar
+                    </button>
+                </div>
+                <div class="card-body" id="results-container">
+                    <p class="text-muted text-center py-3">Cargando resultados...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========================
+             TAB: VOTAR
+        ======================== -->
+        <div id="tab-vote" style="display:none">
+            <div class="card">
+                <div class="card-header">
+                    <i class="bi bi-check-square me-2"></i>Emitir Voto
+                </div>
+                <div class="card-body">
+                    <div id="vote-response"></div>
+                    <div class="mb-3">
+                        <label class="form-label">ID del Votante</label>
+                        <input type="number" class="form-control" id="vote-voter-id" placeholder="Ej: 1">
+                        <div class="form-text text-muted">Puedes ver los IDs en la sección "Ver Listas".</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Candidato</label>
+                        <select class="form-select" id="vote-candidate-id">
+                            <option value="">-- Selecciona un candidato --</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-accent w-100" onclick="castVote()">
+                        <i class="bi bi-send me-2"></i>Emitir Voto
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========================
+             TAB: REGISTRAR
+        ======================== -->
+        <div id="tab-register" style="display:none">
+            <div class="row g-3">
+                <!-- Registrar Votante -->
+                <div class="col-md-6">
+                    <div class="card h-100">
+                        <div class="card-header">
+                            <i class="bi bi-person-plus me-2"></i>Registrar Votante
+                        </div>
+                        <div class="card-body">
+                            <div id="voter-response"></div>
+                            <div class="mb-3">
+                                <label class="form-label">Nombre completo</label>
+                                <input type="text" class="form-control" id="voter-name" placeholder="Ej: María García">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Email</label>
+                                <input type="email" class="form-control" id="voter-email" placeholder="Ej: maria@email.com">
+                            </div>
+                            <button class="btn btn-accent w-100" onclick="createVoter()">
+                                <i class="bi bi-person-check me-2"></i>Registrar Votante
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Registrar Candidato -->
+                <div class="col-md-6">
+                    <div class="card h-100">
+                        <div class="card-header">
+                            <i class="bi bi-person-badge me-2"></i>Registrar Candidato
+                        </div>
+                        <div class="card-body">
+                            <div id="candidate-response"></div>
+                            <div class="mb-3">
+                                <label class="form-label">Nombre completo</label>
+                                <input type="text" class="form-control" id="candidate-name" placeholder="Ej: Juan Pérez">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Email</label>
+                                <input type="email" class="form-control" id="candidate-email" placeholder="Ej: juan@email.com">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Partido / Agrupación <span class="text-muted">(opcional)</span></label>
+                                <input type="text" class="form-control" id="candidate-party" placeholder="Ej: Partido Verde">
+                            </div>
+                            <button class="btn btn-accent w-100" onclick="createCandidate()">
+                                <i class="bi bi-person-badge me-2"></i>Registrar Candidato
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========================
+             TAB: VER LISTAS
+        ======================== -->
+        <div id="tab-lists" style="display:none">
+            <div class="row g-3">
+                <!-- Lista de votantes -->
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <span><i class="bi bi-people me-2"></i>Votantes Registrados</span>
+                            <button class="btn btn-sm btn-accent" onclick="loadVoters()">
+                                <i class="bi bi-arrow-clockwise"></i>
+                            </button>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th><th>Nombre</th><th>Email</th><th>¿Votó?</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="voters-table-body">
+                                        <tr><td colspan="4" class="text-center text-muted py-3">Cargando...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Lista de candidatos -->
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <span><i class="bi bi-person-badge me-2"></i>Candidatos Registrados</span>
+                            <button class="btn btn-sm btn-accent" onclick="loadCandidates()">
+                                <i class="bi bi-arrow-clockwise"></i>
+                            </button>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th><th>Nombre</th><th>Partido</th><th>Votos</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="candidates-table-body">
+                                        <tr><td colspan="4" class="text-center text-muted py-3">Cargando...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div><!-- /container -->
+
+    <script>
+        // ============================================================
+        // MODO OSCURO / CLARO
+        // Es muy simple: solo cambiamos el atributo data-theme del
+        // elemento <html>. El CSS hace el resto con las variables.
+        // ============================================================
+        function toggleTheme() {
+            const html = document.documentElement;
+            const currentTheme = html.getAttribute("data-theme");
+            const newTheme = currentTheme === "light" ? "dark" : "light";
+            html.setAttribute("data-theme", newTheme);
+
+            // Actualizamos el ícono y el texto del botón
+            const icon = document.getElementById("theme-icon");
+            const label = document.getElementById("theme-label");
+            if (newTheme === "dark") {
+                icon.className = "bi bi-sun-fill me-1";
+                label.textContent = "Modo Claro";
+            } else {
+                icon.className = "bi bi-moon-fill me-1";
+                label.textContent = "Modo Oscuro";
+            }
+
+            // Guardamos la preferencia en localStorage para recordarla
+            localStorage.setItem("theme", newTheme);
+        }
+
+        // Al cargar la página, aplicamos el tema guardado (si existe)
+        const savedTheme = localStorage.getItem("theme");
+        if (savedTheme === "dark") {
+            document.documentElement.setAttribute("data-theme", "dark");
+            document.getElementById("theme-icon").className = "bi bi-sun-fill me-1";
+            document.getElementById("theme-label").textContent = "Modo Claro";
+        }
+
+        // ============================================================
+        // NAVEGACIÓN POR TABS
+        // ============================================================
+        function showTab(tabName) {
+            // Ocultamos todos los tabs
+            const tabs = ["results", "vote", "register", "lists"];
+            tabs.forEach(t => {
+                document.getElementById(`tab-${t}`).style.display = "none";
+            });
+
+            // Mostramos el tab seleccionado
+            document.getElementById(`tab-${tabName}`).style.display = "block";
+
+            // Actualizamos los estilos del menú
+            document.querySelectorAll(".nav-link").forEach(link => link.classList.remove("active"));
+            event.target.classList.add("active");
+
+            // Cargamos datos del tab si es necesario
+            if (tabName === "results") loadResults();
+            if (tabName === "vote") loadCandidatesForSelect();
+            if (tabName === "lists") { loadVoters(); loadCandidates(); }
+        }
+
+        // ============================================================
+        // FUNCIÓN HELPER: LLAMADAS A LA API
+        // Centralizar el fetch evita repetir el mismo código
+        // en cada función y hace más fácil manejar errores.
+        // ============================================================
+        async function apiCall(method, endpoint, body = null) {
+            const options = {
+                method: method,
+                headers: { "Content-Type": "application/json" }
+            };
+            if (body) options.body = JSON.stringify(body);
+
+            const response = await fetch(endpoint, options);
+            const data = await response.json();
+
+            // Devolvemos tanto el status como los datos para poder
+            // saber si fue exitoso o hubo un error
+            return { ok: response.ok, status: response.status, data };
+        }
+
+        // Helper para mostrar alertas de respuesta en el frontend
+        function showAlert(containerId, message, isSuccess) {
+            const type = isSuccess ? "success" : "danger";
+            const icon = isSuccess ? "check-circle" : "exclamation-triangle";
+            document.getElementById(containerId).innerHTML = `
+                <div class="alert alert-${type} alert-response d-flex align-items-center gap-2">
+                    <i class="bi bi-${icon}-fill"></i>
+                    <span>${message}</span>
+                </div>
+            `;
+        }
+
+        // ============================================================
+        // CARGAR ESTADÍSTICAS GLOBALES
+        // ============================================================
+        async function loadStats() {
+            const [votersRes, candidatesRes, resultsRes] = await Promise.all([
+                apiCall("GET", "/voters/"),
+                apiCall("GET", "/candidates/"),
+                apiCall("GET", "/results/")
+            ]);
+            if (votersRes.ok) document.getElementById("stat-voters").textContent = votersRes.data.length;
+            if (candidatesRes.ok) document.getElementById("stat-candidates").textContent = candidatesRes.data.length;
+            if (resultsRes.ok) document.getElementById("stat-votes").textContent = resultsRes.data.total_votes;
+        }
+
+        // ============================================================
+        // TAB: RESULTADOS
+        // ============================================================
+        async function loadResults() {
+            const { ok, data } = await apiCall("GET", "/results/");
+            const container = document.getElementById("results-container");
+
+            if (!ok || data.rankings.length === 0) {
+                container.innerHTML = `<p class="text-center text-muted py-4">
+                    <i class="bi bi-inbox fs-2 d-block mb-2"></i>
+                    No hay votos registrados todavía.
+                </p>`;
+                loadStats();
+                return;
+            }
+
+            const maxVotes = data.rankings[0].vote_count || 1; // Para calcular el porcentaje de la barra
+
+            let html = `<p class="text-muted mb-3">
+                <i class="bi bi-info-circle me-1"></i>
+                Total de votos emitidos: <strong>${data.total_votes}</strong>
+            </p>`;
+
+            // Construimos una tarjeta por candidato, ordenadas por votos
+            data.rankings.forEach((candidate, index) => {
+                const isWinner = index === 0;
+                const percentage = maxVotes > 0 ? Math.round((candidate.vote_count / maxVotes) * 100) : 0;
+                const medal = index === 0 ? "🥇" : index === 1 ? "🥈" : index === 2 ? "🥉" : "";
+
+                html += `
+                <div class="candidate-card ${isWinner ? 'winner' : ''}">
+                    <div class="rank-badge">${medal || (index + 1)}</div>
+                    <div class="vote-bar-container">
+                        <div class="d-flex justify-content-between align-items-baseline">
+                            <div>
+                                <strong>${candidate.name}</strong>
+                                ${candidate.party ? `<small class="ms-2 opacity-75">${candidate.party}</small>` : ''}
+                            </div>
+                            <strong>${candidate.vote_count} ${candidate.vote_count === 1 ? 'voto' : 'votos'}</strong>
+                        </div>
+                        <div class="vote-bar">
+                            <div class="vote-bar-fill" style="width: ${percentage}%"></div>
+                        </div>
+                    </div>
+                </div>`;
+            });
+
+            container.innerHTML = html;
+            loadStats();
+        }
+
+        // ============================================================
+        // TAB: VOTAR
+        // ============================================================
+        async function loadCandidatesForSelect() {
+            const { ok, data } = await apiCall("GET", "/candidates/");
+            const select = document.getElementById("vote-candidate-id");
+            select.innerHTML = '<option value="">-- Selecciona un candidato --</option>';
+            if (ok) {
+                data.forEach(c => {
+                    select.innerHTML += `<option value="${c.id}">${c.name} ${c.party ? `(${c.party})` : ''} — ${c.vote_count} votos</option>`;
+                });
+            }
+        }
+
+        async function castVote() {
+            const voter_id = parseInt(document.getElementById("vote-voter-id").value);
+            const candidate_id = parseInt(document.getElementById("vote-candidate-id").value);
+
+            if (!voter_id || !candidate_id) {
+                showAlert("vote-response", "Por favor completa todos los campos.", false);
+                return;
+            }
+
+            const { ok, data } = await apiCall("POST", "/votes/", { voter_id, candidate_id });
+            showAlert("vote-response", data.message || data.detail, ok);
+            if (ok) loadStats();
+        }
+
+        // ============================================================
+        // TAB: REGISTRAR
+        // ============================================================
+        async function createVoter() {
+            const name = document.getElementById("voter-name").value.trim();
+            const email = document.getElementById("voter-email").value.trim();
+
+            if (!name || !email) {
+                showAlert("voter-response", "Por favor completa todos los campos.", false);
+                return;
+            }
+
+            const { ok, data } = await apiCall("POST", "/voters/", { name, email });
+            showAlert("voter-response", data.message || data.detail, ok);
+            if (ok) {
+                document.getElementById("voter-name").value = "";
+                document.getElementById("voter-email").value = "";
+                loadStats();
+            }
+        }
+
+        async function createCandidate() {
+            const name = document.getElementById("candidate-name").value.trim();
+            const email = document.getElementById("candidate-email").value.trim();
+            const party = document.getElementById("candidate-party").value.trim() || null;
+
+            if (!name || !email) {
+                showAlert("candidate-response", "Por favor completa los campos obligatorios.", false);
+                return;
+            }
+
+            const { ok, data } = await apiCall("POST", "/candidates/", { name, email, party });
+            showAlert("candidate-response", data.message || data.detail, ok);
+            if (ok) {
+                document.getElementById("candidate-name").value = "";
+                document.getElementById("candidate-email").value = "";
+                document.getElementById("candidate-party").value = "";
+                loadStats();
+            }
+        }
+
+        // ============================================================
+        // TAB: VER LISTAS
+        // ============================================================
+        async function loadVoters() {
+            const { ok, data } = await apiCall("GET", "/voters/");
+            const tbody = document.getElementById("voters-table-body");
+
+            if (!ok || data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-3">No hay votantes registrados.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = data.map(v => `
+                <tr>
+                    <td><span class="badge bg-secondary">${v.id}</span></td>
+                    <td>${v.name}</td>
+                    <td><small>${v.email}</small></td>
+                    <td>
+                        ${v.has_voted
+                            ? '<span class="badge bg-success">Sí <i class="bi bi-check"></i></span>'
+                            : '<span class="badge bg-warning text-dark">No</span>'
+                        }
+                    </td>
+                </tr>
+            `).join("");
+        }
+
+        async function loadCandidates() {
+            const { ok, data } = await apiCall("GET", "/candidates/");
+            const tbody = document.getElementById("candidates-table-body");
+
+            if (!ok || data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-3">No hay candidatos registrados.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = data.map(c => `
+                <tr>
+                    <td><span class="badge bg-secondary">${c.id}</span></td>
+                    <td>${c.name}</td>
+                    <td>${c.party || '<span class="text-muted">—</span>'}</td>
+                    <td><strong>${c.vote_count}</strong></td>
+                </tr>
+            `).join("");
+        }
+
+        // ============================================================
+        // INICIO: cargamos los datos al abrir la página
+        // ============================================================
+        loadStats();
+        loadResults();
+    </script>
+</body>
+</html>
